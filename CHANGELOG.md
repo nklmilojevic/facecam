@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.1 - 2026-10-23
+
+This release has no change to the behavior of facecam. It only changes the tests.
+
+### Other changes
+
+- The project has updated tests. This helps keep facecam reliable, and you do not need to do anything.
+
 ## v0.1.0 - 2026-10-23
 
 This first release of facecam gives you a macOS menu bar app and a CLI to control your Elgato Facecam camera.
