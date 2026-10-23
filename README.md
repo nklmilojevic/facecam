@@ -5,6 +5,14 @@ UVC, so no vendor software has to be installed or running.
 
 <img src="Resources/AppIcon.png" width="128" alt="Facecam icon">
 
+|  | Elgato Camera Hub 2.3.0 | Facecam |
+| --- | --- | --- |
+| Installed size | 876 MB | **1.9 MB** (CLI: 3.7 MB) |
+| Download | | **971 KB** DMG |
+| Built on | Qt 6 + Chromium (QtWebEngine), bundled USB and ISP SDKs | SwiftUI + IOKit |
+
+Same camera controls, about 460× smaller.
+
 - Image, exposure, white balance and framing controls, including the Elgato-specific ones (HDR, vibrancy, tint,
   noise reduction, metering)
 - Live preview while the panel is open
