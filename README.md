@@ -13,6 +13,8 @@ UVC, so no vendor software has to be installed or running.
 
 Same camera controls, about 460× smaller.
 
+<img src="docs/screenshot.png" width="336" alt="Facecam menu bar panel with live preview and camera controls">
+
 - Image, exposure, white balance and framing controls, including the Elgato-specific ones (HDR, vibrancy, tint,
   noise reduction, metering)
 - Live preview while the panel is open
