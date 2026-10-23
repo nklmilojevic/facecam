@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.2 - 2026-10-23
+
+This release adds a screenshot of the menu bar panel to the documentation. It has no change to the behavior of the app.
+
+### Other changes
+
+- The documentation now shows a screenshot of the menu bar panel. This helps you see how the panel looks before you use it.
+- The release build now attaches to an existing release. The release process no longer fails when the release already exists.
+
 ## v0.1.1 - 2026-10-23
 
 This release has no change to the behavior of facecam. It only changes the tests.
