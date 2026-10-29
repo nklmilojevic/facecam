@@ -6,6 +6,8 @@ final class CameraPreview: @unchecked Sendable {
     let session = AVCaptureSession()
     private let queue = DispatchQueue(label: "facecam.preview")
     private var configuredDeviceID: String?
+    /// Set on `queue`; lets a stop that arrives before the access callback cancel the start.
+    private var wantsRunning = false
 
     /// Elgato UVC devices report a model ID like "UVC Camera VendorID_4057 ProductID_147".
     private static func elgatoCamera() -> AVCaptureDevice? {
@@ -18,10 +20,12 @@ final class CameraPreview: @unchecked Sendable {
 
     func start(onDenied: @escaping @Sendable () -> Void) {
         log.notice("preview start, authorization \(AVCaptureDevice.authorizationStatus(for: .video).rawValue)")
+        queue.async { [self] in wantsRunning = true }
         AVCaptureDevice.requestAccess(for: .video) { [self] granted in
             log.notice("camera access granted: \(granted)")
             guard granted else { return onDenied() }
             queue.async { [self] in
+                guard wantsRunning else { return }
                 guard let device = Self.elgatoCamera() else {
                     log.error("no Elgato capture device found")
                     return
@@ -43,15 +47,23 @@ final class CameraPreview: @unchecked Sendable {
 
     func stop() {
         queue.async { [self] in
+            wantsRunning = false
             if session.isRunning { session.stopRunning() }
+            log.notice("preview stopped")
         }
     }
 }
 
 /// Hosts the preview as a sublayer and keeps it sized to the view; a layer-hosting view with the
 /// preview layer as its own backing layer can stay zero-sized inside a MenuBarExtra window.
+///
+/// A MenuBarExtra window is only ordered out when the panel closes, so SwiftUI never calls
+/// onDisappear; visibility is tracked from the window's occlusion state instead.
 final class PreviewNSView: NSView {
     let previewLayer: AVCaptureVideoPreviewLayer
+    var onVisibilityChange: (Bool) -> Void = { _ in }
+    private var isVisible = false
+    private var occlusionObserver: NSObjectProtocol?
 
     init(session: AVCaptureSession) {
         previewLayer = AVCaptureVideoPreviewLayer(session: session)
@@ -64,6 +76,26 @@ final class PreviewNSView: NSView {
 
     required init?(coder: NSCoder) { nil }
 
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        occlusionObserver.map(NotificationCenter.default.removeObserver)
+        occlusionObserver = window.map {
+            NotificationCenter.default.addObserver(
+                forName: NSWindow.didChangeOcclusionStateNotification, object: $0, queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated { self?.updateVisibility() }
+            }
+        }
+        updateVisibility()
+    }
+
+    private func updateVisibility() {
+        let visible = window?.occlusionState.contains(.visible) ?? false
+        guard visible != isVisible else { return }
+        isVisible = visible
+        onVisibilityChange(visible)
+    }
+
     override func layout() {
         super.layout()
         CATransaction.begin()
@@ -75,13 +107,21 @@ final class PreviewNSView: NSView {
 
 struct PreviewView: NSViewRepresentable {
     let session: AVCaptureSession
+    let onVisibilityChange: (Bool) -> Void
 
     func makeNSView(context: Context) -> PreviewNSView {
-        PreviewNSView(session: session)
+        let view = PreviewNSView(session: session)
+        view.onVisibilityChange = onVisibilityChange
+        return view
     }
 
     func updateNSView(_ nsView: PreviewNSView, context: Context) {
+        nsView.onVisibilityChange = onVisibilityChange
         nsView.needsLayout = true
+    }
+
+    static func dismantleNSView(_ nsView: PreviewNSView, coordinator: ()) {
+        nsView.onVisibilityChange(false)
     }
 }
 
@@ -99,14 +139,16 @@ struct CameraPreviewPanel: View {
                     .foregroundStyle(.secondary)
                     .padding()
             } else {
-                PreviewView(session: preview.session)
+                PreviewView(session: preview.session) { visible in
+                    if visible {
+                        preview.start { Task { @MainActor in denied = true } }
+                    } else {
+                        preview.stop()
+                    }
+                }
             }
         }
         .frame(width: 312, height: 175.5)
         .clipShape(RoundedRectangle(cornerRadius: 8))
-        .onAppear {
-            preview.start { Task { @MainActor in denied = true } }
-        }
-        .onDisappear { preview.stop() }
     }
 }
