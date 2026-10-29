@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.1.3 - 2026-10-29
+
+This release fixes a problem where the camera stayed in use after you closed the menu bar panel.
+
+### Fixes
+
+- The camera now stops when you close the menu bar panel. Before, the capture session kept running and the camera light stayed on.
+
 ## v0.1.2 - 2026-10-23
 
 This release adds a screenshot of the menu bar panel to the documentation. It has no change to the behavior of the app.
